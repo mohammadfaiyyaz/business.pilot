@@ -1,0 +1,40 @@
+<div class="support-bot-root">
+  @if (open()) {
+    <section class="support-bot-window" aria-label="BusinessPilot AI support chat">
+      <header class="support-bot-header">
+        <span class="support-bot-mark">b</span>
+        <div><b>BusinessPilot Support</b><small>Ask us anything about your workspace</small></div>
+        <button type="button" class="bot-icon-button" (click)="startNew()" title="New conversation" aria-label="Start a new conversation">↻</button>
+        <button type="button" class="bot-icon-button" (click)="toggle()" title="Close chat" aria-label="Close support chat">×</button>
+      </header>
+      <div class="support-bot-messages" aria-live="polite">
+        @if (!(conversation()?.messages?.length)) {
+          <div class="bot-welcome"><span class="bot-spark">✦</span><b>Hi {{ auth.session()?.name?.split(' ')?.[0] }}. How can we help?</b><p>Ask a question and we’ll look through this workspace’s approved support information.</p></div>
+        } @else {
+          @for (item of conversation()?.messages ?? []; track item.id) {
+            <article class="bot-message" [class.bot-user-message]="item.role === 'Customer'" [class.bot-system-message]="item.role === 'System'">
+              <small>{{ item.role === 'Customer' ? 'You' : item.role === 'Assistant' ? 'AI Support' : 'Support' }}</small><p>{{ item.content }}</p>
+            </article>
+          }
+        }
+        @if (error()) { <p class="bot-error" role="alert">{{ error() }}</p> }
+      </div>
+      @if (workspace(); as ws) {
+        @if (!ws.aiConfigured) { <div class="bot-config-note">@if (ws.approvedKnowledgeCount === 0) { Add approved FAQs in Support settings to start answering questions. } @else { Answers come directly from your approved FAQs. Questions without an approved answer can be escalated to your team. }</div> }
+      }
+      <form class="support-bot-composer" (ngSubmit)="send()">
+        <label class="sr-only" for="support-bot-message">Message support</label>
+        <textarea #messageInput id="support-bot-message" name="supportBotMessage" [(ngModel)]="message" rows="2" maxlength="4000" required placeholder="Write a message…" (keydown.enter)="onEnter($any($event))"></textarea>
+        <button type="submit" [disabled]="busy() || !message.trim()" aria-label="Send message">{{ busy() ? '…' : '↑' }}</button>
+      </form>
+      @if (conversation() && conversation()?.status !== 'Escalated' && conversation()?.status !== 'Closed') {
+        <button class="bot-escalate" type="button" (click)="escalate()">Talk to the team</button>
+      }
+    </section>
+  }
+  @if (!open()) {
+    <button class="support-bot-launcher" type="button" (click)="toggle()" aria-label="Open AI support chat" title="AI support">
+      <span class="launcher-icon">✦</span><span class="sr-only">AI Support</span><i aria-hidden="true"></i>
+    </button>
+  }
+</div>

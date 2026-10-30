@@ -1,0 +1,14 @@
+{
+  "name": "businesspilot",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix src/businesspilot-web install",
+    "start": "npm --prefix src/businesspilot-web start",
+    "start:api": "dotnet run --no-restore --project src/BusinessPilot.Api/BusinessPilot.Api.csproj --launch-profile BusinessPilot.Api",
+    "start:frontend": "npm --prefix src/businesspilot-web start",
+    "build": "npm run build:frontend",
+    "build:all": "npm run build:frontend && npm run build:api",
+    "build:api": "dotnet build src/BusinessPilot.Api/BusinessPilot.Api.csproj",
+    "build:frontend": "npm --prefix src/businesspilot-web run build"
+  }
+}

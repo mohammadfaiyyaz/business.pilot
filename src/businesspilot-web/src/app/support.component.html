@@ -1,0 +1,39 @@
+<section class="page-content support-page">
+  <div class="page-heading"><div><div class="section-kicker">CUSTOMER EXPERIENCE</div><h1>AI Support</h1><p>Approved answers, saved conversations, and clear escalation paths.</p></div><button class="button button-primary" (click)="newConversation()">＋ New test chat</button></div>
+  @if (error()) {<div class="support-alert error-alert" role="alert">{{ error() }}</div>}
+  @if (notice()) {<div class="support-alert success-alert" role="status">{{ notice() }}</div>}
+  @if (workspace(); as ws) {
+    <div class="support-status-row">
+      <article class="panel provider-status"><span class="status-indicator" [class.status-ready]="ws.aiConfigured"></span><div><b>{{ ws.aiConfigured ? 'AI provider configured' : 'AI integration requires configuration.' }}</b><small>{{ ws.aiConfigured ? 'Answers use only matching approved knowledge from this workspace.' : 'Approved FAQs and documents answer directly now. Configure an AI provider for generated answers beyond saved material.' }}</small></div><span class="status-pill" [class.paid-pill]="ws.aiConfigured">{{ ws.aiConfigured ? ws.provider : 'Not configured' }}</span></article>
+      <article class="panel usage-card"><span>AI messages this month</span><b>{{ ws.messagesUsed }} <small>/ {{ ws.monthlyLimit === 0 ? 'Not included' : ws.monthlyLimit }}</small></b><i class="usage-track"><em [style.width.%]="ws.monthlyLimit > 0 ? (ws.messagesUsed / ws.monthlyLimit * 100 > 100 ? 100 : ws.messagesUsed / ws.monthlyLimit * 100) : 0"></em></i></article>
+    </div>
+    <div class="support-workbench">
+      <div class="support-left-column">
+        <section class="panel support-panel"><div class="panel-heading"><div><h2>Approved knowledge</h2><p>Only approved, active items are sent to the AI provider.</p></div><span class="knowledge-count">{{ knowledge().length }}</span></div>
+          @if (canManage()) {
+            <form class="knowledge-form" (ngSubmit)="saveKnowledge()">
+              <div class="knowledge-form-heading"><b>Add an FAQ or support document</b><small>Draft items are not used for answers until approved.</small></div>
+              <div class="support-form-row"><label>Type<select name="knowledgeKind" [(ngModel)]="knowledgeDraft.kind"><option value="FAQ">FAQ</option><option value="Document">Document</option></select></label><label class="approval-toggle"><input name="knowledgeApproved" type="checkbox" [(ngModel)]="knowledgeDraft.isApproved"> Approve for answers</label></div>
+              <label>Title<input name="knowledgeTitle" [(ngModel)]="knowledgeDraft.title" required minlength="2" maxlength="160" placeholder="e.g. Returns and refunds"></label>
+              @if (knowledgeDraft.kind === 'FAQ') {<label>Customer question<input name="knowledgeQuestion" [(ngModel)]="knowledgeDraft.question" required maxlength="1000" placeholder="What is your return policy?"></label><label>Approved answer<textarea name="knowledgeAnswer" [(ngModel)]="knowledgeDraft.answer" required maxlength="4000" rows="3" placeholder="Write the exact answer customers may receive."></textarea></label>}
+              @else {<label>Document content<textarea name="knowledgeContent" [(ngModel)]="knowledgeDraft.content" required minlength="2" maxlength="12000" rows="4" placeholder="Paste approved support information."></textarea></label>}
+              <button class="button button-primary" [disabled]="busy() || !knowledgeDraft.title">{{ busy() ? 'Saving…' : 'Save knowledge item' }}</button>
+            </form>
+          }
+          @if (!knowledge().length) {<div class="support-empty"><b>No knowledge added yet</b><span>Add approved FAQs or documents to enable grounded answers.</span></div>}
+          @else {<div class="knowledge-list">@for (item of knowledge(); track item.id) {<article class="knowledge-item"><div><span class="knowledge-kind">{{ item.kind }}</span><span class="approval-badge" [class.approved]="item.isApproved">{{ item.isApproved ? 'Approved' : 'Draft' }}</span><h3>{{ item.title }}</h3>@if (item.question) {<p><b>Q.</b> {{ item.question }}</p>}<p class="knowledge-preview">{{ item.answer || item.content }}</p><small>Updated {{ item.updatedAtUtc | date:'d MMM yyyy' }}</small></div>@if (canManage()) {<div class="knowledge-actions"><button class="row-action" (click)="toggleApproval(item)">{{ item.isApproved ? 'Unapprove' : 'Approve' }}</button><button class="row-action danger-action" (click)="archiveKnowledge(item)">Archive</button></div>}</article>}</div>}
+        </section>
+        @if (canManage()) {
+          <section class="panel support-panel widget-panel"><div class="panel-heading"><div><h2>Customer chat widget</h2><p>Embed support chat on your website.</p></div><span class="status-pill" [class.paid-pill]="ws.widgetEnabled">{{ ws.widgetEnabled ? 'Enabled' : 'Disabled' }}</span></div><p class="widget-note">Visitors can ask questions and request follow-up. Their contact details are stored only when they explicitly consent.</p><pre><code>{{ embedCode }}</code></pre><div class="widget-actions"><button class="button button-quiet" (click)="copyEmbedCode()">Copy embed code</button><button class="button" (click)="toggleWidget()">{{ ws.widgetEnabled ? 'Disable widget' : 'Enable widget' }}</button></div></section>
+        }
+      </div>
+      <section class="panel chat-panel"><div class="panel-heading"><div><h2>In-app test chat</h2><p>Try the same approved-knowledge answer flow.</p></div><button class="button button-quiet" (click)="newConversation()">New</button></div>
+        <div class="conversation-history"><label for="supportConversation">Conversation history</label><select id="supportConversation" [value]="conversation()?.id ?? ''" (change)="openConversation($any($event.target).value)" aria-label="Select a saved conversation"><option value="">Start a new conversation</option>@for (item of conversations(); track item.id) {<option [value]="item.id">{{ item.updatedAtUtc | date:'d MMM, h:mm a' }} · {{ item.status }} · {{ item.lastMessage || 'No messages' }}</option>}</select></div>
+        @if (conversation(); as current) {<div class="conversation-meta"><span class="status-pill" [class.paid-pill]="current.status === 'Escalated'">{{ current.status }}</span><span>{{ current.source }} chat</span>@if (current.contactConsent && current.leadEmail) {<span>Consented follow-up: {{ current.leadName }} · {{ current.leadEmail }}</span>}</div>}
+        <div class="chat-messages" aria-live="polite">@if (!(conversation()?.messages?.length)) {<div class="chat-welcome"><span class="chat-mark">BP</span><b>Test a customer question</b><p>Answers are grounded in approved knowledge. If the provider is not set up, the chat will say so.</p></div>} @else {@for (item of conversation()?.messages ?? []; track item.id) {<article class="chat-message" [class.customer-message]="item.role === 'Customer'" [class.system-message]="item.role === 'System'"><small>{{ messageSource(item) }} · {{ item.createdAtUtc | date:'h:mm a' }}</small><p>{{ item.content }}</p></article>}}</div>
+        <form class="chat-composer" (ngSubmit)="sendMessage()"><label class="sr-only" for="supportMessage">Your support test message</label><textarea id="supportMessage" name="supportMessage" [(ngModel)]="message" maxlength="4000" required rows="2" placeholder="Ask about an approved support topic…"></textarea><div><small>Conversation messages are saved to this workspace.</small><button class="button button-primary" [disabled]="busy() || !message.trim()">{{ busy() ? 'Sending…' : 'Send message' }}</button></div></form>
+        @if (conversation() && conversation()?.status !== 'Escalated' && conversation()?.status !== 'Closed') {<button class="escalate-button" (click)="escalate()">Escalate to the team</button>}
+      </section>
+    </div>
+  } @else if (loading()) {<section class="panel support-loading">Loading AI support…</section>}
+</section>

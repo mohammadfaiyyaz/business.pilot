@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+.angular/
+.env
+.env.*
+!.env.example
+.dotnet-home/
+.tools/
+/.build-check/
+*.user
+*.suo
